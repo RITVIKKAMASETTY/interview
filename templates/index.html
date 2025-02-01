@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterXAI Interview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1>InterXAI Interview</h1>
+    <div id="interviewPanel">
+        <div id="questionsPanel">
+            <div id="questions"></div>
+            <button id="readQuestion">Read Question</button>
+            <textarea id="answerInput" rows="4" cols="50" placeholder="Type your answer here..."></textarea>
+            <button id="speakAnswer">Speak Answer</button>
+            <div id="answerDisplay"></div>
+            <button id="nextQuestion">Next Question</button>
+            <button id="submitAnswers">Submit Answers</button>
+        </div>
+        <div id="cameraFeed">
+            <img id="cameraImage" src="{{ url_for('camera_feed') }}" alt="Camera Feed" style="width: 320px; height: 240px;">
+        </div>
+    </div>
+    <div id="output"></div>
+</div>
+
+<script>
+    let questions = [];
+    let answers = [];
+    let currentQuestionIndex = 0;
+
+    // Start the interview and load questions
+    fetch('/start_interview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'questions_asked') {
+            questions = data.questions;
+            displayQuestion(currentQuestionIndex);
+        }
+    });
+
+    // Display the current question
+    function displayQuestion(index) {
+        const questionsDiv = document.getElementById('questions');
+        questionsDiv.innerHTML = `<p>Question ${index + 1}: ${questions[index]}</p>`;
+    }
+
+    // Read the current question aloud
+    document.getElementById('readQuestion').addEventListener('click', function() {
+        fetch('/speak', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: questions[currentQuestionIndex] }),
+        });
+    });
+
+    // Speak the answer and convert it to text
+    document.getElementById('speakAnswer').addEventListener('click', function() {
+        fetch('/listen', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            const answerDisplay = document.getElementById('answerDisplay');
+            answerDisplay.innerHTML = `<p>Your Answer: ${data.text}</p>`;
+            answers[currentQuestionIndex] = data.text;
+        });
+    });
+
+    // Move to the next question
+    document.getElementById('nextQuestion').addEventListener('click', function() {
+        const answerInput = document.getElementById('answerInput').value;
+        answers[currentQuestionIndex] = answerInput;
+        currentQuestionIndex++;
+        if (currentQuestionIndex < questions.length) {
+            displayQuestion(currentQuestionIndex);
+            document.getElementById('answerInput').value = '';
+            document.getElementById('answerDisplay').innerHTML = '';
+        } else {
+            alert("All questions answered. Please submit your answers.");
+        }
+    });
+
+    // Submit all answers
+    document.getElementById('submitAnswers').addEventListener('click', function() {
+        fetch('/submit_answers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ answers: answers }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'malpractice_detected') {
+                alert(data.message);
+            } else if (data.status === 'completed') {
+                let outputHTML = `
+                    <h2>Interview Completed</h2>
+                    <h3>Answers:</h3>
+                    <ul>
+                        ${data.answers.map((answer, index) => `<li>Question ${index + 1}: ${answer}</li>`).join('')}
+                    </ul>
+                    <h3>Evaluation:</h3>
+                    <ul>
+                        ${data.evaluation.map((eval, index) => `<li>Question ${index + 1}: ${eval}</li>`).join('')}
+                    </ul>
+                `;
+                document.getElementById('output').innerHTML = outputHTML;
+            }
+        });
+    });
+
+    // Display camera feed
+    const cameraImage = document.getElementById('cameraImage');
+    setInterval(() => {
+        cameraImage.src = '/camera_feed?' + new Date().getTime();
+    }, 100);
+
+    // Detect new tab opening
+    window.addEventListener('blur', () => {
+        fetch('/malpractice_detected', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+    });
+</script>
+</body>
+</html>

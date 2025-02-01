@@ -1,0 +1,50 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 80%;
+    max-width: 1200px;
+}
+
+#interviewPanel {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+#questionsPanel {
+    flex: 1;
+    margin-right: 20px;
+}
+
+#cameraFeed {
+    flex: 1;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 10px;
+}
+
+textarea {
+    width: 100%;
+    margin: 10px 0;
+}
+
+#output {
+    margin-top: 20px;
+}
